@@ -1,6 +1,5 @@
 package com.lawal;
 
-import com.lawal.RangeSliderBar.DoublePair;
 import com.vaadin.Application;
 import com.vaadin.data.Property.ValueChangeEvent;
 import com.vaadin.data.Property.ValueChangeListener;
@@ -15,83 +14,111 @@ import com.vaadin.ui.Window;
 import com.vaadin.ui.themes.Reindeer;
 
 public class RangeSliderBarApplication extends Application {
-	/**
-	 * 
-	 */
+
 	private static final long serialVersionUID = 5484943553531596125L;
 
 	@Override
 	public void init() {
 		Window mainWindow = new Window("RangeSliderBar Application");
-		
-		VerticalLayout vlay = setup(); 
-		
+
+		VerticalLayout vlay = setup();
+
 		mainWindow.addComponent(vlay);
 
-		
 		setMainWindow(mainWindow);
 	}
 
 	private VerticalLayout setup() {
-		
-		final RangeSliderBar bar = new RangeSliderBar();
-		final TextField tf = new TextField();
-		
+
+		final RangeSliderBar slider = new RangeSliderBar();
+		final TextField minTf = new TextField();
+		final TextField maxTf = new TextField();
+
 		Button btn = new Button("Set value");
-		
+
 		btn.addListener(new ClickListener() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			public void buttonClick(ClickEvent event) {
 				try {
-					double dval = Double.parseDouble( (String) tf.getValue());
-					bar.setSliderValue(   dval, dval+10);
+					double minVal = convertVal(minTf.getValue());
+					double maxVal = convertVal(maxTf.getValue());
+
+					slider.setKnobValues(minVal, maxVal);
+
 				} catch (NumberFormatException e) {
-					
+
 					e.printStackTrace();
 				}
 			}
 		});
-		
-		
-		
+
 		VerticalLayout vlay = new VerticalLayout();
-		vlay.setWidth(500,Sizeable.UNITS_PIXELS);
+		vlay.setWidth(500, Sizeable.UNITS_PIXELS);
 		vlay.addStyleName(Reindeer.LAYOUT_BLUE);
-		
-		
-		bar.addListener(new ValueChangeListener() {
+
+		slider.addListener(new ValueChangeListener() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			public void valueChange(ValueChangeEvent event) {
+
+				DoublePair val = (DoublePair) event.getProperty().getValue();
+				Double max = val.max;
+				Double min = val.min;
+				minTf.setValue(min);
+				maxTf.setValue(max);
 				
-				DoublePair val = (DoublePair) event.getProperty().getValue(); 
-				System.out.println("().new ValueChangeListener() {...}.valueChange()" + val._max+" "+val._min);
-				tf.setValue(String.valueOf(val._max)+ " , "+val._min);
-				
+//				if(Double.compare(max, 12.0)>0) {
+//					slider.setEnabled(false);
+//				}
+
+				if (max < min) {
+					System.err.println("().new ValueChangeListener() {...}.valueChange()" + max + " " + min);
+					throw new RuntimeException("max is less than min");
+				}
+
 			}
 		});
-		bar.setNumberLabels(10);
-		bar.setNumberTicks(10);
-		bar.setRangeMin(-15);
-		bar.setRangeMax(+15);
-		bar.setStepSize(.5); 
-		bar.setSuperImmediateMode(true);
-		bar.setValue(10);
-	
+		slider.setNumberOfLabels(10);
+		slider.setNumberOfTicks(5);
 
-		bar.setImmediate(true);
-		bar.setSizeFull();
+		slider.setKnobValues(-10.0d, 10.0d);
+		slider.setRangeMin(-15);
+		slider.setRangeMax(+15);
+		slider.setStepSize(.5);
+		slider.setSuperImmediateMode(false);
+		slider.setAppendString("ms");
+		slider.setRequired(true);
+
+		slider.setImmediate(true);
+		slider.setCaption("Human reaction time");
 		
-		
+
+		// Button incrRannge = new Button("+");
+		//
+		// incrRannge.addListener(new ClickListener() {
+		// private static final long serialVersionUID = 1L;
+		//
+		// @Override
+		// public void buttonClick(ClickEvent event) {
+		// bar.setRangeMax(bar.getRangeMax() - 10);
+		// }
+		// });
+
 		HorizontalLayout hlay = new HorizontalLayout();
-		hlay.addComponent(tf);
+		hlay.addComponent(minTf);
+		hlay.addComponent(maxTf);
 		hlay.addComponent(btn);
 		vlay.addComponent(hlay);
-		vlay.addComponent(bar);
+		vlay.addComponent(slider);
 		return vlay;
+	}
+
+	protected double convertVal(Object mv) {
+		return new Double(String.valueOf(mv));
+
 	}
 
 }

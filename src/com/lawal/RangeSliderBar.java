@@ -13,8 +13,9 @@
  * the License.
  * 
  * 
- * This is a direct port of the Google gwt RangeSliderBar into Vaadin obtained from
- * http://google-web-toolkit-incubator.googlecode.com/svn/trunk/demo/RangeSliderBar/index.html
+ * This is a modified port of the Google gwt SliderBar into Vaadin obtained from
+ * http://google-web-toolkit-incubator.googlecode.com/svn/trunk/demo/SliderBar/index.html
+ * by Olufowobi Lawal talktolawal@gmail.com (Nov 2011)
  */
 package com.lawal;
 
@@ -28,14 +29,18 @@ import com.vaadin.ui.Slider.ValueOutOfBoundsException;
 @SuppressWarnings("serial")
 @com.vaadin.ui.ClientWidget(com.lawal.client.ui.VRangeSliderBar.class)
 public class RangeSliderBar extends AbstractField {
+	
+	private static final Object MIN_VALUE_VARIABLE = "knobmin";
+	private static final Object MAX_VALUE_VARIABLE = "knobmax";
 	private double rangeMin = 0;
 	private double rangeMax = 100;
-	private double stepSize = 10;
+	private double stepSize = 1;
 	private int numTicks = 10;
 	private int numLabels = 10;
 	private boolean superImmediateMode = false;
-	private double knobMinValue = 0;
-	private double knobMaxValue = 100;
+	private double knobMinValue = rangeMin;
+	private double knobMaxValue = rangeMax;
+	private String appendString = "";
 
 	/**
 	 * Default Slider constructor. Sets all values to defaults and the slide
@@ -43,7 +48,8 @@ public class RangeSliderBar extends AbstractField {
 	 */
 	public RangeSliderBar() {
 		super();
-		setKnobValues(knobMinValue, knobMaxValue, false);
+		setSizeFull();
+		setVal(knobMinValue, knobMaxValue, false);
 	}
 
 	/**
@@ -104,58 +110,49 @@ public class RangeSliderBar extends AbstractField {
 	}
 
 	/**
-	 * Set the maximum value of the Slider. If the current value of the Slider
-	 * is out of new bounds, the value is set to new minimum.
+	 * Set the maximum value of the Slider. If the current max value of the Slider
+	 * is out of new bounds, the value is set to new maximum val of the slider.
 	 * 
 	 * @param rangeMax
 	 *            New maximum value of the Slider.
 	 */
 	public void setRangeMax(double rangeMax) {
 		this.rangeMax = rangeMax;
-		if ((new Double(getPairValue()._min.toString())).doubleValue() > rangeMax) {
-			setKnobValues(knobMinValue, new Double(rangeMax), false);
+
+		double presentMax = ((DoublePair) getValue()).max;
+
+		if (rangeMax < presentMax) {
+			setVal(((DoublePair) getValue()).min, rangeMax, false);
 		}
-		// try {
-		// } catch (final ClassCastException e) {
-		// // FIXME: Handle exception
-		// /*
-		// * Where does ClassCastException come from? Can't see any casts
-		// * above
-		// */
-		// setKnobValues( knobMinValue, new Double(rangeMax),false);
-		// }
+
 		requestRepaint();
 	}
 
 	/**
 	 * Gets the minimum value in Sliders range.
 	 * 
-	 * @return the smalles value slider can have
+	 * @return the smallest value slider can have
 	 */
 	public double getRangeMin() {
 		return rangeMin;
 	}
 
 	/**
-	 * Set the minimum value of the Slider. If the current value of the Slider
-	 * is out of new bounds, the value is set to new minimum.
+	 * Set the minimum range of the Slider. If the current min value of the
+	 * Slider is out of new bounds, the value is set to new minimum.
 	 * 
 	 * @param rangeMin
 	 *            New minimum value of the Slider.
 	 */
 	public void setRangeMin(double minRangeValue) {
 		this.rangeMin = minRangeValue;
-		if ((new Double(getPairValue()._max.toString())).doubleValue() < minRangeValue) {
-			setKnobValues(new Double(minRangeValue), knobMaxValue, false);
+
+		double presentMin = ((DoublePair) getValue()).min;
+
+		if (Double.compare(rangeMin, presentMin) > 0) {
+			setVal(rangeMin, ((DoublePair) getValue()).max, false);
 		}
-		// try {
-		// } catch (final ClassCastException e) {
-		// // FIXME: Handle exception
-		// /*
-		// * Where does ClassCastException come from? Can't see any casts
-		// * above
-		// */
-		// }
+
 		requestRepaint();
 	}
 
@@ -181,25 +178,8 @@ public class RangeSliderBar extends AbstractField {
 		requestRepaint();
 	}
 
-	/**
-	 * Set the value of this Slider.
-	 * 
-	 * @param value
-	 *            New value of Slider. Must be within Sliders range (rangeMin -
-	 *            rangeMax),
-	 *            otherwise throws an exception.
-	 * @param repaintIsNotNeeded
-	 *            If true, client-side is not requested to repaint itself.
-	 * @throws ValueOutOfBoundsException
-	 */
-	private void setKnobValues(double min, double max, boolean repaintIsNotNeeded) {
-		min = toMinDescrete(min);
-		max = toMaxDescrete(max);
-		super.setValue(new DoublePair(min, max), repaintIsNotNeeded);
-	}
-
 	private double toMaxDescrete(double newMax) {
-		if (newMax < rangeMax) {
+		if (newMax > rangeMax) {
 			return rangeMax;
 		}
 		return newMax;
@@ -213,6 +193,7 @@ public class RangeSliderBar extends AbstractField {
 	}
 
 	@Override
+	// send value to client
 	public void paintContent(PaintTarget target) throws PaintException {
 		super.paintContent(target);
 		target.addAttribute("rangeMin", rangeMin);
@@ -225,55 +206,32 @@ public class RangeSliderBar extends AbstractField {
 		target.addAttribute("numticks", numTicks);
 		target.addAttribute("numlabels", numLabels);
 		target.addAttribute("superimmediate", superImmediateMode);
-		// if (stepSize > 0) {
-		// target.addVariable(this, "value", ((Double)
-		// getValue()).doubleValue());
-		// } else {
-		// target.addVariable(this, "value", ((Double) getValue()).intValue());
-		// }
+
 		target.addAttribute("knobmin", knobMinValue);
 		target.addAttribute("knobmax", knobMaxValue);
+
+		target.addAttribute("append", appendString);
 	}
 
 	/**
 	 * Invoked when the value of a variable has changed. RangeSliderBar
-	 * listeners are
-	 * notified if the slider value has changed.
+	 * listeners are notified if the slider value has changed.
 	 * 
 	 * @param source
 	 * @param variables
 	 */
+
 	@Override
 	public void changeVariables(Object source, Map<String, Object> variables) {
 		super.changeVariables(source, variables);
-		if (variables.containsKey("knobmin") && variables.containsKey("knobmax")) {
-			final Double min = new Double(variables.get("knobmin").toString());
-			final Double max = new Double(variables.get("knobmax").toString());
-			if (min != null && max != null) {
-				// try {
-				setKnobValues(min, max, true);
-				// } catch (final ValueOutOfBoundsException e) {
-				// // Convert to nearest bound
-				// double out = e.getValue().doubleValue();
-				// if (out < rangeMin) {
-				// out = rangeMin;
-				// }
-				// if (out > rangeMax) {
-				// out = rangeMax;
-				// }
-				// super.setKnobValues(new Double(out), false);
-				// }
-			}
-		}
-	}
 
-	public static class DoublePair {
-		public DoublePair(double min, double max) {
-			_min = min;
-			_max = max;
-		}
+		if (variables.containsKey(MIN_VALUE_VARIABLE) && variables.containsKey(MAX_VALUE_VARIABLE)) {
+			final Double min = new Double(variables.get(MIN_VALUE_VARIABLE).toString());
+			final Double max = new Double(variables.get(MAX_VALUE_VARIABLE).toString());
 
-		public Double _min, _max;
+			setVal(min, max, true);
+
+		}
 	}
 
 	@Override
@@ -284,19 +242,18 @@ public class RangeSliderBar extends AbstractField {
 	/**
 	 * The number of tick marks to show.
 	 */
-	public void setNumberTicks(int numTicks) {
+	public void setNumberOfTicks(int numTicks) {
 		this.numTicks = numTicks;
 	}
 
 	public int getNumberTicks() {
 		return numTicks;
 	}
-	
 
 	/**
 	 * The number of labels to show.
 	 */
-	public void setNumberLabels(int numLabels) {
+	public void setNumberOfLabels(int numLabels) {
 		this.numLabels = numLabels;
 	}
 
@@ -305,35 +262,15 @@ public class RangeSliderBar extends AbstractField {
 	}
 
 	/**
-	 * This method is used instead of {@link #setKnobValues(double)} without
-	 * throwing
-	 * exception. The val is set to rangeMax or rangeMin if it exceeds the
-	 * rangeMin or rangeMax
-	 * value
-	 * accordingly
-	 * 
-	 * @param val
-	 *            .
-	 */
-	public void setSliderValue(double min, double max) {
-		if (max > rangeMax) {
-			max = rangeMax;
-		} else if (min < rangeMin) {
-			min = rangeMin;
-			return;
-		} else
-			setKnobValues(min, max, true);
-	}
-
-	/**
-	 * If super immediate mode is true, values are immediately
-	 * received from client when dragging with the mouse and
-	 * when the Arrow keys are pressed down
+	 * If super immediate mode is true, values are immediately received from
+	 * client when dragging with the mouse and when the Arrow keys are pressed
+	 * down
 	 * 
 	 * @param superImmediateMode
 	 */
 	public void setSuperImmediateMode(boolean superImmediateMode) {
-		if (superImmediateMode) this.setImmediate(true);
+		if (superImmediateMode)
+			this.setImmediate(true);
 		this.superImmediateMode = superImmediateMode;
 		requestRepaint();
 	}
@@ -342,13 +279,54 @@ public class RangeSliderBar extends AbstractField {
 		return superImmediateMode;
 	}
 
-	public  DoublePair getPairValue() {
+	public DoublePair getKnobValues() {
 		return (DoublePair) super.getValue();
 	}
 
+	/**
+	 * Set the value of this Slider.
+	 * 
+	 * @param value
+	 *            New value of Slider. Must be within Sliders range (rangeMin -
+	 *            rangeMax), otherwise throws an exception.
+	 * @param repaintIsNotNeeded
+	 *            If true, client-side is not requested to repaint itself.
+	 * @throws ValueOutOfBoundsException
+	 */
+	protected void setVal(double min, double max, boolean repaintIsNotNeeded) {
+
+		knobMinValue = toMinDescrete(min);
+		knobMaxValue = toMaxDescrete(max);
+
+		if (knobMaxValue < knobMinValue) {
+			knobMaxValue = knobMinValue;
+		}
+		DoublePair dv = new DoublePair(knobMinValue, knobMaxValue);
+	
+		super.setValue(dv, repaintIsNotNeeded);
+	}
+
+	public void setKnobValues(Double minValue, Double maxValue) {
+
+		setVal(minValue, maxValue, false);
+	}
+
 	@Override
-	public void setValue(Object newValue) throws ReadOnlyException, ConversionException {
-		
-		super.setValue(new DoublePair(knobMinValue, knobMaxValue));
+	public void setValue(Object newValue){
+		if ((newValue instanceof DoublePair)) {
+			throw new IllegalArgumentException("Value of Type " + DoublePair.class.getSimpleName() + " was excepted");
+
+		}
+
+		DoublePair val = (DoublePair) newValue;
+		setVal(val.min, val.max, false);
+	}
+
+	public String getAppendString() {
+		return appendString;
+	}
+
+	public void setAppendString(String appendString) {
+		this.appendString = appendString;
 	}
 }

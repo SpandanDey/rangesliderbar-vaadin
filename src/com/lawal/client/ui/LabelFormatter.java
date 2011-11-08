@@ -20,7 +20,7 @@ package com.lawal.client.ui;
 	   return new LabelFormatter() {
 		@Override
 		String formatLabel(VRangeSliderBar slider, double value) {
-			return String.valueOf(value);
+			return String.valueOf(value)+ slider.getAppendString();
 		}
 	};
    }

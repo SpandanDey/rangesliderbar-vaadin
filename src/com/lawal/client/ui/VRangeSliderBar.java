@@ -16,7 +16,6 @@ package com.lawal.client.ui;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Element;
@@ -30,45 +29,13 @@ import com.vaadin.terminal.gwt.client.UIDL;
 import com.vaadin.terminal.gwt.client.VConsole;
 import com.vaadin.terminal.gwt.client.ui.Field;
 
-/**
- * A widget that allows the user to select a value within a range of possible
- * values using a sliding bar that responds to mouse events. <h3>Keyboard Events
- * </h3>
- * <p>
- * VRangeSliderBar listens for the following key events. Holding down a key will
- * repeat the action until the key is released.
- * <ul class='css'>
- * <li>left arrow - shift left one step</li>
- * <li>right arrow - shift right one step</li>
- * <li>ctrl+left arrow - jump left 10% of the distance</li>
- * <li>ctrl+right arrow - jump right 10% of the distance</li>
- * <li>home - jump to min value</li>
- * <li>end - jump to max value</li>
- * <li>space - jump to middle value</li>
- * </ul>
- * </p>
- * <h3>CSS Style Rules</h3>
- * <ul class='css'>
- * <li>.gwt-VRangeSliderBar-shell { primary style }</li>
- * <li>.gwt-VRangeSliderBar-shell-focused { primary style when focused }</li>
- * <li>.gwt-VRangeSliderBar-shell gwt-VRangeSliderBar-line { the line that the knob moves
- * along }</li>
- * <li>.gwt-VRangeSliderBar-shell gwt-VRangeSliderBar-line-sliding { the line that the
- * knob moves along when sliding }</li>
- * <li>.gwt-VRangeSliderBar-shell .gwt-VRangeSliderBar-knob { the sliding knob }</li>
- * <li>.gwt-VRangeSliderBar-shell .gwt-VRangeSliderBar-knob-sliding { the sliding knob
- * when sliding }</li>
- * <li>.gwt-VRangeSliderBar-shell .gwt-VRangeSliderBar-tick { the ticks along the line }</li>
- * <li>.gwt-VRangeSliderBar-shell .gwt-VRangeSliderBar-label { the text labels along the
- * line }</li>
- * </ul>
- */
 public class VRangeSliderBar extends FocusPanel implements Paintable, Field, ContainerResizedListener {
+
+	private static final String SLIDER_BAR_LINE = "gwt-VRangeSliderBar-line";
 	private static final String KNOB_MAX_CLASSNAME = "gwt-VRangeSliderBar-knobmax";
 	private static final String KNOB_MIN_CLASSNAME = "gwt-VRangeSliderBar-knobmin";
-	private static final String MIN_VALUE_VARIABLE = "knobmin";
+
 	private static final String CLASSNAME = "gwt-VRangeSliderBar-shell";
-	private static final String MAX_VALUE_VARIABLE = "knobmax";
 	/**
 	 * The timer used to continue to shift the knob if the user holds down a
 	 * key.
@@ -133,17 +100,21 @@ public class VRangeSliderBar extends FocusPanel implements Paintable, Field, Con
 	private String id;
 	private boolean immediate;
 	private boolean readonly;
-	private Element progressElement;
+	private Element progressElementMin;
+	private Element progressElementMax;
+
 	private boolean superImmediate = false;
 	private double minCurrValue;
 	private double maxCurrValue;
+	private Element _target;
+	private String appendString="";
 
 	public VRangeSliderBar() {
 		super();
 		this.rangeMin = 0;
 		this.rangeMax = 100;
 		this.setMinCurrValue(0);
-		this.maxCurrValue=100;
+		this.maxCurrValue = 100;
 		this.stepSize = 10;
 		setLabelFormatter(LabelFormatter.getDefault());
 		// Create the outer shell
@@ -153,25 +124,32 @@ public class VRangeSliderBar extends FocusPanel implements Paintable, Field, Con
 		lineElement = DOM.createDiv();
 		DOM.appendChild(getElement(), lineElement);
 		DOM.setStyleAttribute(lineElement, "position", "absolute");
-		DOM.setElementProperty(lineElement, "className", "gwt-VRangeSliderBar-line");
+		DOM.setElementProperty(lineElement, "className", SLIDER_BAR_LINE);
 		// Create the knob
-		
+
 		// Element knobElemMin = knobImage.getElement();
 		knobElemMin = DOM.createDiv();
 		DOM.appendChild(getElement(), knobElemMin);
 		DOM.setStyleAttribute(knobElemMin, "position", "absolute");
 		DOM.setElementProperty(knobElemMin, "className", KNOB_MIN_CLASSNAME);
-		
-		 knobElemMax = DOM.createDiv();
+
+		knobElemMax = DOM.createDiv();
 		DOM.appendChild(getElement(), knobElemMax);
 		DOM.setStyleAttribute(knobElemMax, "position", "absolute");
 		DOM.setElementProperty(knobElemMax, "className", KNOB_MAX_CLASSNAME);
+
+		progressElementMin = DOM.createDiv();
+		DOM.appendChild(getElement(), progressElementMin);
+		DOM.setStyleAttribute(progressElementMin, "position", "absolute");
+		DOM.setElementProperty(progressElementMin, "className", "gwt-VRangeSliderBar-progress");
+		
+		progressElementMax = DOM.createDiv();
+		DOM.appendChild(getElement(), progressElementMax);
+		DOM.setStyleAttribute(progressElementMax, "position", "absolute");
+		DOM.setElementProperty(progressElementMax, "className", "gwt-VRangeSliderBar-progress");
 		
 		
-		progressElement = DOM.createDiv();
-		DOM.appendChild(getElement(), progressElement);
-		DOM.setStyleAttribute(progressElement, "position", "absolute");
-		DOM.setElementProperty(progressElement, "className", "gwt-VRangeSliderBar-progress");
+		
 		sinkEvents(Event.MOUSEEVENTS | Event.ONMOUSEWHEEL | Event.KEYEVENTS | Event.FOCUSEVENTS | Event.TOUCHEVENTS);
 	}
 
@@ -183,9 +161,8 @@ public class VRangeSliderBar extends FocusPanel implements Paintable, Field, Con
 	public double getTotalRange() {
 		if (rangeMin > rangeMax) {
 			return 0;
-		} else {
-			return rangeMax - rangeMin;
 		}
+		return rangeMax - rangeMin;
 	}
 
 	/**
@@ -201,6 +178,7 @@ public class VRangeSliderBar extends FocusPanel implements Paintable, Field, Con
 		if (!enabled || readonly) {
 			return;
 		}
+
 		switch (DOM.eventGetType(event)) {
 		// Unhighlight and cancel keyboard events
 		case Event.ONBLUR:
@@ -225,9 +203,9 @@ public class VRangeSliderBar extends FocusPanel implements Paintable, Field, Con
 			int velocityY = DOM.eventGetMouseWheelVelocityY(event);
 			DOM.eventPreventDefault(event);
 			if (velocityY < 0) {
-//				shiftRight(1,true);
+//				 shiftRight(1,true);
 			} else {
-//				shiftLeft(1,true);
+				// shiftLeft(1,true);
 			}
 			break;
 		// Shift left or right on key press
@@ -268,7 +246,7 @@ public class VRangeSliderBar extends FocusPanel implements Paintable, Field, Con
 			}
 			break;
 		}
-		VConsole.log("sldMouse " + slidingMouse + " slidKey" + slidingKeyboard + " stepSZ" + stepSize);
+		VConsole.log("sliding mouse " + slidingMouse + " slidKey" + slidingKeyboard + " step SZ" + stepSize);
 	}
 
 	private void processKeyDown(Event event) {
@@ -282,30 +260,30 @@ public class VRangeSliderBar extends FocusPanel implements Paintable, Field, Con
 		switch (DOM.eventGetKeyCode(event)) {
 		case KeyCodes.KEY_HOME:
 			DOM.eventPreventDefault(event);
-			setCurrentValue(rangeMin,rangeMin,true);
+			setCurrentValue(rangeMin, rangeMin, true);
 			break;
 		case KeyCodes.KEY_END:
 			DOM.eventPreventDefault(event);
-			setCurrentValue(rangeMax,rangeMax,true);
+			setCurrentValue(rangeMax, rangeMax, true);
 			break;
 		case KeyCodes.KEY_LEFT:
 			DOM.eventPreventDefault(event);
 			slidingKeyboard = true;
 			startSliding(false, true);
-//			shiftLeft(multiplier,superImmediate);
+			// shiftLeft(multiplier,superImmediate);
 			keyTimer.schedule(400, false, multiplier);
 			break;
 		case KeyCodes.KEY_RIGHT:
 			DOM.eventPreventDefault(event);
 			slidingKeyboard = true;
 			startSliding(false, true);
-//			shiftRight(multiplier,superImmediate);
+			// shiftRight(multiplier,superImmediate);
 			keyTimer.schedule(400, true, multiplier);
 			break;
 		case 32:
 			DOM.eventPreventDefault(event);
 			double half = rangeMin + getTotalRange() / 2;
-			setCurrentValue(half,half,true);
+			setCurrentValue(half, half, true);
 			break;
 		}
 	}
@@ -341,15 +319,15 @@ public class VRangeSliderBar extends FocusPanel implements Paintable, Field, Con
 		}
 	}
 
-//	/**
-//	 * Set the current value and fire the onValueChange event.
-//	 * 
-//	 * @param curValue
-//	 *            the current value
-//	 */
-//	public void setCurrentValue(double curValue) {
-//		setCurrentValue(curValue, true);
-//	}
+	// /**
+	// * Set the current value and fire the onValueChange event.
+	// *
+	// * @param curValue
+	// * the current value
+	// */
+	// public void setCurrentValue(double curValue) {
+	// setCurrentValue(curValue, true);
+	// }
 
 	/**
 	 * Set the current value and optionally fire the onValueChange event.
@@ -367,24 +345,24 @@ public class VRangeSliderBar extends FocusPanel implements Paintable, Field, Con
 		if (fireEvent) {
 			updateValueToServer();
 		}
-		VConsole.log(" setCurrentValue" + minCurVal + " "+ maxCurVal+""  +superImmediate);
+		VConsole.log(" setCurrentValue" + minCurVal + " " + maxCurVal + "" + superImmediate);
 	}
 
-private double confineValue(double value) {
-	// Confine the value to the range
-	double val = Math.max(rangeMin, Math.min(rangeMax, value));
-	double remainder = (val - rangeMin) % stepSize;
-	val -= remainder;
-	// Go to next step if more than halfway there
-	if ((remainder > (stepSize / 2)) && ((val + stepSize) <= rangeMax)) {
-		val += stepSize;
+	private double confineValue(double value) {
+		// Confine the value to the range
+		double val = Math.max(rangeMin, Math.min(rangeMax, value));
+		double remainder = (val - rangeMin) % stepSize;
+		val -= remainder;
+		// Go to next step if more than halfway there
+		if ((remainder > (stepSize / 2)) && ((val + stepSize) <= rangeMax)) {
+			val += stepSize;
+		}
+		return val;
 	}
-	return val;
-}
 
 	private void updateValueToServer() {
-		client.updateVariable(id, MIN_VALUE_VARIABLE, getMinCurrValue(), immediate);
-		client.updateVariable(id, MAX_VALUE_VARIABLE, getMaxCurrValue(), immediate);
+		client.updateVariable(id, "knobmin", getMinCurrValue(), false);
+		client.updateVariable(id, "knobmax", getMaxCurrValue(), immediate);
 
 	}
 
@@ -398,10 +376,11 @@ private double confineValue(double value) {
 		this.enabled = enabled;
 		if (enabled) {
 			// images.slider().applyTo(knobImage);
-			DOM.setElementProperty(lineElement, "className", "gwt-VRangeSliderBar-line");
+			DOM.setElementProperty(lineElement, "className", SLIDER_BAR_LINE);
 		} else {
 			// images.sliderDisabled().applyTo(knobImage);
-			DOM.setElementProperty(lineElement, "className", "gwt-VRangeSliderBar-line gwt-VRangeSliderBar-line-disabled");
+			DOM.setElementProperty(lineElement, "className",
+					"gwt-VRangeSliderBar-line gwt-VRangeSliderBar-line-disabled");
 		}
 		redraw();
 	}
@@ -443,15 +422,12 @@ private double confineValue(double value) {
 	/**
 	 * Set the number of labels to show on the line. Labels indicate the value
 	 * of the slider at that point. Use this method to enable labels. If you set
-	 * the
-	 * number of labels equal to the total range divided by the step size, you
-	 * will get a properly aligned "jumping" effect where the knob jumps between
-	 * labels.
-	 * Note that the number of labels displayed will be one more than the number
-	 * you specify, so specify 1 labels to show labels on either end of the
-	 * line. In
-	 * other words, numLabels is really the number of slots between the labels.
-	 * setNumLabels(0) will disable labels.
+	 * the number of labels equal to the total range divided by the step size,
+	 * you will get a properly aligned "jumping" effect where the knob jumps
+	 * between labels. Note that the number of labels displayed will be one more
+	 * than the number you specify, so specify 1 labels to show labels on either
+	 * end of the line. In other words, numLabels is really the number of slots
+	 * between the labels. setNumLabels(0) will disable labels.
 	 * 
 	 * @param numLabels
 	 *            the number of labels to show
@@ -464,15 +440,12 @@ private double confineValue(double value) {
 	/**
 	 * Set the number of ticks to show on the line. A tick is a vertical line
 	 * that represents a division of the overall line. Use this method to enable
-	 * ticks.
-	 * If you set the number of ticks equal to the total range divided by the
-	 * step size, you will get a properly aligned "jumping" effect where the
-	 * knob jumps
-	 * between ticks. Note that the number of ticks displayed will be one more
-	 * than the number you specify, so specify 1 tick to show ticks on either
-	 * end of the
-	 * line. In other words, numTicks is really the number of slots between the
-	 * ticks. setNumTicks(0) will disable ticks.
+	 * ticks. If you set the number of ticks equal to the total range divided by
+	 * the step size, you will get a properly aligned "jumping" effect where the
+	 * knob jumps between ticks. Note that the number of ticks displayed will be
+	 * one more than the number you specify, so specify 1 tick to show ticks on
+	 * either end of the line. In other words, numTicks is really the number of
+	 * slots between the ticks. setNumTicks(0) will disable ticks.
 	 * 
 	 * @param numTicks
 	 *            the number of ticks to show
@@ -503,25 +476,24 @@ private double confineValue(double value) {
 	 * @param numSteps
 	 *            the number of steps to shift
 	 */
-//	public void shiftLeft(int numSteps, boolean updateToserver) {
-//		setCurrentValue(getCurrentValue() - numSteps * stepSize, updateToserver);
-//	}
-//
-//	/**
-//	 * Shift to the right (greater value).
-//	 * 
-//	 * @param numSteps
-//	 *            the number of steps to shift
-//	 */
-//	public void shiftRight(int numSteps, boolean updateToserver) {
-//		setCurrentValue(getCurrentValue() + numSteps * stepSize,  updateToserver);
-//	}
+	// public void shiftLeft(int numSteps, boolean updateToserver) {
+	// setCurrentValue(getCurrentValue() - numSteps * stepSize, updateToserver);
+	// }
+	//
+	// /**
+	// * Shift to the right (greater value).
+	// *
+	// * @param numSteps
+	// * the number of steps to shift
+	// */
+	// public void shiftRight(int numSteps, boolean updateToserver) {
+	// setCurrentValue(getCurrentValue() + numSteps * stepSize, updateToserver);
+	// }
 
 	/**
 	 * Format the label to display above the ticks Override this method in a
 	 * subclass to customize the format. By default, this method returns the
-	 * integer
-	 * portion of the value.
+	 * integer portion of the value.
 	 * 
 	 * @param value
 	 *            the value at the label
@@ -530,9 +502,8 @@ private double confineValue(double value) {
 	protected String formatLabel(double value) {
 		if (labelFormatter != null) {
 			return labelFormatter.formatLabel(this, value);
-		} else {
-			return (int) (10 * value) / 10.0 + "";
 		}
+		return (int) (10 * value) / 10.0 + "";
 	}
 
 	/**
@@ -573,23 +544,29 @@ private double confineValue(double value) {
 		}
 		// // Move the knob to the correct position
 		int lineWidth = DOM.getElementPropertyInt(lineElement, "offsetWidth");
-		
+
 		int knobWidth = DOM.getElementPropertyInt(knobElemMin, "offsetWidth");
+
+		// draw min knob
 		int minKnobLeft = (int) (lineLeftOffset + (getKnobPercent(getMinCurrValue()) * lineWidth) - (knobWidth / 2));
 		minKnobLeft = Math.min(minKnobLeft, lineLeftOffset + lineWidth - (knobWidth / 2) - 1);
 		DOM.setStyleAttribute(knobElemMin, "left", minKnobLeft + "px");
-		
-		
+
 		knobWidth = DOM.getElementPropertyInt(knobElemMax, "offsetWidth");
 		int maxknobLeft = (int) (lineLeftOffset + (getKnobPercent(maxCurrValue) * lineWidth) - (knobWidth / 2));
 		maxknobLeft = Math.min(maxknobLeft, lineLeftOffset + lineWidth - (knobWidth / 2) - 1);
 		DOM.setStyleAttribute(knobElemMax, "left", maxknobLeft + "px");
+
+		//
+		DOM.setStyleAttribute(progressElementMin, "left", lineLeftOffset + "px");
+		DOM.setStyleAttribute(progressElementMin, "width", 95 * getKnobPercent(getMinCurrValue()) + "%");
+		
+		DOM.setStyleAttribute(progressElementMax, "right", lineLeftOffset + "px");
+		 double rightwidth = 95*  (rangeMax-  getMaxCurrValue() )/ (rangeMax - rangeMin);
+		DOM.setStyleAttribute(progressElementMax, "width", rightwidth + "%");
 		
 		
 		
-		
-		DOM.setStyleAttribute(progressElement, "left", lineLeftOffset + "px");
-		DOM.setStyleAttribute(progressElement, "width", 95 * getKnobPercent(getMinCurrValue()) + "%");
 	}
 
 	/**
@@ -674,7 +651,8 @@ private double confineValue(double value) {
 				if (enabled) {
 					DOM.setElementProperty(tick, "className", "gwt-VRangeSliderBar-tick");
 				} else {
-					DOM.setElementProperty(tick, "className", "gwt-VRangeSliderBar-tick gwt-VRangeSliderBar-tick-disabled");
+					DOM.setElementProperty(tick, "className",
+							"gwt-VRangeSliderBar-tick gwt-VRangeSliderBar-tick-disabled");
 				}
 				// Position the tick and make it visible
 				DOM.setStyleAttribute(tick, "visibility", "hidden");
@@ -709,7 +687,7 @@ private double confineValue(double value) {
 	 * redraw the knob as needed.
 	 */
 	private void resetCurrentValue() {
-		setCurrentValue(getMinCurrValue(),getMaxCurrValue(),true);
+		setCurrentValue(getMinCurrValue(), getMaxCurrValue(), true);
 	}
 
 	/**
@@ -719,21 +697,59 @@ private double confineValue(double value) {
 	 *            the mouse event
 	 */
 	private void slideKnob(Event event) {
-		Element target =DOM.eventGetTarget(event);
-		int x = DOM.eventGetClientX(event);
-		if (x > 0) {
-			int lineWidth = DOM.getElementPropertyInt(lineElement, "offsetWidth");
-			int lineLeft = DOM.getAbsoluteLeft(lineElement);
-			double percent = (double) (x - lineLeft) / lineWidth * 1.0;
-			if(target==knobElemMin) {
-				setCurrentValue(getTotalRange() * percent + rangeMin, this.maxCurrValue, superImmediate);
-				
+	
+		
+		int pointClicked = DOM.eventGetClientX(event);
+
+		
+		int minLeft = DOM.getAbsoluteLeft(knobElemMin);
+		int maxLeft = DOM.getAbsoluteLeft(knobElemMax);
+
+		VConsole.log("VRangeSliderBar.onBrowserEvent()" + " " + minLeft + " " + maxLeft);
+
+		if (pointClicked <= minLeft) {
+			_target = knobElemMin;
+		}
+		//
+		else if (pointClicked >= maxLeft) {
+			_target = knobElemMax;
+		} else {
+			
+			
+			int inbtw = minLeft +( (maxLeft- minLeft) / 2);
+			if(pointClicked <= inbtw) {
+				_target=knobElemMin;
 			}
 			else {
+				
+				_target = knobElemMax;
+			}
+			
+		}
+
+		VConsole.log("target to move is  " + _target.getClassName());
+		if (pointClicked > 0) {
+			int lineWidth = DOM.getElementPropertyInt(lineElement, "offsetWidth");
+			int lineLeft = DOM.getAbsoluteLeft(lineElement);
+			double percent = (double) (DOM.eventGetClientX(event) - lineLeft) / lineWidth * 1.0;
+
+			if (_target == knobElemMin) {
+				setCurrentValue(getTotalRange() * percent + rangeMin, this.maxCurrValue, superImmediate);
+			}
+			// max target
+			else if (_target == knobElemMax) {
 				setCurrentValue(this.minCurrValue, getTotalRange() * percent + rangeMin, superImmediate);
 
 			}
 		}
+		
+		if( minCurrValue > maxCurrValue) {
+			VConsole.log(new Throwable("min cant be greater than max pos min="+ minLeft + " max is "+ maxLeft));
+			
+		}
+		
+		
+		
 	}
 
 	/**
@@ -746,10 +762,18 @@ private double confineValue(double value) {
 	 */
 	private void startSliding(boolean highlight, boolean fireEvent) {
 		if (highlight) {
-			DOM.setElementProperty(lineElement, "className", "gwt-VRangeSliderBar-line gwt-VRangeSliderBar-line-sliding");
-//			DOM.setElementProperty(knobElemMin, "className", "gwt-VRangeSliderBar-knob gwt-VRangeSliderBar-knob-sliding");
-			DOM.setElementProperty(knobElemMin, "className", KNOB_MIN_CLASSNAME);
-			DOM.setElementProperty(knobElemMin, "className",KNOB_MAX_CLASSNAME);
+
+			if (_target == knobElemMin) {
+				DOM.setElementProperty(knobElemMin, "className", KNOB_MIN_CLASSNAME);
+
+			} else if (_target == knobElemMax) {
+				DOM.setElementProperty(knobElemMax, "className", KNOB_MAX_CLASSNAME);
+
+			}
+			DOM.setElementProperty(lineElement, "className",
+					"gwt-VRangeSliderBar-line gwt-VRangeSliderBar-line-sliding");
+			// DOM.setElementProperty(knobElemMin, "className",
+			// "gwt-VRangeSliderBar-knob gwt-VRangeSliderBar-knob-sliding");
 
 		}
 	}
@@ -764,16 +788,23 @@ private double confineValue(double value) {
 	 */
 	private void stopSliding(boolean unhighlight, boolean fireEvent) {
 		if (unhighlight) {
-			DOM.setElementProperty(lineElement, "className", "gwt-VRangeSliderBar-line");
-			
-			DOM.setElementProperty(knobElemMin, "className", KNOB_MIN_CLASSNAME+"-inactive");
-			DOM.setElementProperty(knobElemMin, "className",KNOB_MAX_CLASSNAME+"-inactive");
+
+			if (_target == knobElemMin) {
+				DOM.setElementProperty(knobElemMin, "className", KNOB_MIN_CLASSNAME + "-inactive");
+
+			} else if (_target == knobElemMax) {
+				DOM.setElementProperty(knobElemMax, "className", KNOB_MAX_CLASSNAME + "-inactive");
+
+			}
+
+			DOM.setElementProperty(lineElement, "className", SLIDER_BAR_LINE);
+
 		}
-		
+
 		if (fireEvent) {
 			updateValueToServer();
 		}
-		
+
 	}
 
 	/**
@@ -803,25 +834,28 @@ private double confineValue(double value) {
 		this.stepSize = (resolution);
 		this.rangeMin = (min);
 		this.rangeMax = (max);
+
+		this.minCurrValue = uidl.getDoubleAttribute("knobmin");
+		this.maxCurrValue = uidl.getDoubleAttribute("knobmax");
 		
-		double knobMinValue = uidl.getDoubleAttribute("knobmin");
-		double knobMaxValue = uidl.getDoubleAttribute("knobmax");
-		
-		this.minCurrValue=knobMinValue;
-		this.maxCurrValue=knobMaxValue;
-		
-		
+		appendString = uidl.getStringAttribute("append");
+
 		setEnabled(!disables);
 		setNumLabels(numLabel);
 		setNumTicks(ticks);
-		setCurrentValue(knobMinValue,knobMaxValue, false);
-		VConsole.log("value " + minCurrValue + " max " + maxCurrValue);
+		
+		setCurrentValue(minCurrValue, maxCurrValue, false);
+
+//		VConsole.log("update from uidl range " + rangeMin + "    min =" + rangeMax);
+//		VConsole.log("update from uidl currt " + minCurrValue + " max " + maxCurrValue);
+		
+		
 	}
 
 	@Override
 	public void iLayout() {
 		// Update handle position
-		setCurrentValue(getMinCurrValue(),maxCurrValue, false);
+		setCurrentValue(getMinCurrValue(), getMaxCurrValue(), false);
 	}
 
 	// GETTERS
@@ -830,9 +864,9 @@ private double confineValue(double value) {
 	 * 
 	 * @return the current value
 	 */
-//	public double getCurrentValue() {
-//		return curValue;
-//	}
+	// public double getCurrentValue() {
+	// return curValue;
+	// }
 
 	/**
 	 * Return the label formatter.
@@ -911,15 +945,22 @@ private double confineValue(double value) {
 		return maxCurrValue;
 	}
 
+	public String getAppendString() {
+		return appendString;
+	}
+
+	public void setAppendString(String appendString) {
+		this.appendString = appendString;
+	}
+
 	/**
 	 * The timer used to continue to shift the knob as the user holds down one
 	 * of the left/right arrow keys. Only IE auto-repeats, so we just keep
-	 * catching the
-	 * events.
+	 * catching the events.
 	 */
-	private class KeyTimer extends Timer {
+	private  class KeyTimer extends Timer {
 		/**
-		 * A bit indicating that this is the _min run.
+		 * A bit indicating that this is the run.
 		 */
 		private boolean firstRun = true;
 		/**
@@ -949,9 +990,11 @@ private double confineValue(double value) {
 			}
 			// Slide the slider bar
 			if (shiftRight) {
-//				setCurrentValue(curValue + multiplier * stepSize, superImmediate);
+				// setCurrentValue(curValue + multiplier * stepSize,
+				// superImmediate);
 			} else {
-//				setCurrentValue(curValue - multiplier * stepSize,superImmediate);
+				// setCurrentValue(curValue - multiplier *
+				// stepSize,superImmediate);
 			}
 			// Repeat this timer until cancelled by keyup event
 			schedule(repeatDelay);
