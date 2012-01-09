@@ -69,15 +69,7 @@ public class RangeSliderBarApplication extends Application {
 				Double min = val.min;
 				minTf.setValue(min);
 				maxTf.setValue(max);
-				
-//				if(Double.compare(max, 12.0)>0) {
-//					slider.setEnabled(false);
-//				}
-
-				if (max < min) {
-					System.err.println("().new ValueChangeListener() {...}.valueChange()" + max + " " + min);
-					throw new RuntimeException("max is less than min");
-				}
+			
 
 			}
 		});
@@ -93,7 +85,7 @@ public class RangeSliderBarApplication extends Application {
 		slider.setRequired(true);
 
 		slider.setImmediate(true);
-		slider.setCaption("Human reaction time");
+		slider.setCaption("Reaction time");
 		
 
 		// Button incrRannge = new Button("+");

@@ -313,7 +313,7 @@ public class RangeSliderBar extends AbstractField {
 
 	@Override
 	public void setValue(Object newValue){
-		if ((newValue instanceof DoublePair)) {
+		if (!(newValue instanceof DoublePair)) {
 			throw new IllegalArgumentException("Value of Type " + DoublePair.class.getSimpleName() + " was excepted");
 
 		}
