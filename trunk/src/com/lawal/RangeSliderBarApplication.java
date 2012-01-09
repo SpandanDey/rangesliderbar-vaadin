@@ -75,18 +75,17 @@ public class RangeSliderBarApplication extends Application {
 		});
 		slider.setNumberOfLabels(10);
 		slider.setNumberOfTicks(5);
-
-		slider.setKnobValues(-10.0d, 10.0d);
 		slider.setRangeMin(-15);
 		slider.setRangeMax(+15);
 		slider.setStepSize(.5);
 		slider.setSuperImmediateMode(false);
 		slider.setAppendString("ms");
 		slider.setRequired(true);
-
 		slider.setImmediate(true);
 		slider.setCaption("Reaction time");
 		
+		DoublePair p = new DoublePair(-12.0d, 10.0d);
+		slider.setValue(p);
 
 		// Button incrRannge = new Button("+");
 		//
@@ -112,5 +111,7 @@ public class RangeSliderBarApplication extends Application {
 		return new Double(String.valueOf(mv));
 
 	}
+	
+
 
 }
