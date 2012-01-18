@@ -14,12 +14,12 @@ package com.lawal.client.ui;
      * @param value the value the label displays
      * @return the text to display for the label
      */
-   abstract String formatLabel(VRangeSliderBar slider, double value);
+   public abstract String formatLabel(VRangeSliderBar slider, double value);
    
    public static LabelFormatter getDefault() {
 	   return new LabelFormatter() {
 		@Override
-		String formatLabel(VRangeSliderBar slider, double value) {
+		public String formatLabel(VRangeSliderBar slider, double value) {
 			return String.valueOf(value)+ slider.getAppendString();
 		}
 	};
