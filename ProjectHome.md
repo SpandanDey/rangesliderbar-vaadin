@@ -1,0 +1,1 @@
+A port of the gwt sliderbar, to include range selection.
